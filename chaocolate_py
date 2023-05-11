@@ -1,9 +1,73 @@
+#import modules
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+#create soup object from html file
 website = requests.get('https://content.codecademy.com/courses/beautifulsoup/cacao/index.html')
 soup = BeautifulSoup(website.content, 'html.parser')
-print(soup)
+
+#find all ratings tags
+rating_tags = soup.find_all(attrs={'class':'Rating'})
+
+#create empty list to store ratings as floats
+ratings = []
+for rating in rating_tags[1:]: #skip first tag
+    num = rating.get_text()
+    score = float(num)
+    ratings.append(score)
+
+#display histogram of ratings
+plt.hist(ratings)
+plt.show()
+
+#find all company tags
+company_tags = soup.select(".Company")
+#print(company_tags) #uncomment this line to see list of company tags
+
+#create empty list to store company names
+companies = []
+for company in company_tags[1:]: #skip first tag
+    name = company.get_text()
+    companies.append(name)
+
+#print(companies) #uncomment this line to see list of company names
+
+#create a dataframe from dictionary with two columns: company and rating
+data = {'Company': companies, 'Rating': ratings}
+companies_df = pd.DataFrame.from_dict(data)
+
+
+mean_vals = companies_df.groupby('Company').Rating.mean() #group by company and find mean rating
+top_ten = mean_vals.nlargest(10) #find top ten companies by rating
+print(top_ten)
+
+#create empty list to store cocoa percentages as floats
+cocoa_percentage = []
+cocoa_tags = soup.select(".CocoaPercent")
+for percentage in cocoa_tags[1:]: #skip first tag
+    num = percentage.get_text()
+    quantity = float(num[:-1]) #remove % sign
+    cocoa_percentage.append(quantity)
+
+#print(cocoa_percentage) #uncomment this line to see list of cocoa percentages
+
+#create a dataframe from dictionary with three columns: company, rating, and cocoa percentage
+cocoa = {"Company": companies, "Rating": ratings, "CocoaPercentage": cocoa_percentage}
+cocoa_df = pd.DataFrame.from_dict(cocoa)
+
+#display scatterplot of cocoa percentage vs rating
+plt.scatter(cocoa_df.CocoaPercentage, cocoa_df.Rating)
+
+#display the correlation coefficient (codecademy solution)
+z = np.polyfit(cocoa_df.CocoaPercentage, cocoa_df.Rating, 1)
+line_function = np.poly1d(z)
+plt.plot(cocoa_df.CocoaPercentage, line_function(cocoa_df.CocoaPercentage), "r--")
+
+#display the correlation coefficient (my solution)
+plt.show()
+
+#used to clear plot before displaying next plot
+plt.clf()
